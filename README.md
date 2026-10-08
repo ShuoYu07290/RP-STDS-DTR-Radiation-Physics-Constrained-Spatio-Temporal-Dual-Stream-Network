@@ -2,72 +2,63 @@
 
 # RP-STDS-DTR
 
-Code for the Radiation-Physics-Constrained Spatio-Temporal Dual-Stream Network for Dim Target Recognition in Remote Sensing.
+Code for *Radiation-Physics-Constrained Spatio-Temporal Dual-Stream Network for Dim Target Recognition in Remote Sensing*.
 
-RP-STDS-DTR combines radiative-intensity sequences with infrared images for three-class recognition. The temporal branch extracts multiscale radiative features and learns class-specific scale weights. The spatial branch uses a dilated ResNet-18 backbone, and temporal features guide spatial feature modulation before classification. Temporal-variation, spectral-concentration, and scale-weight regularization terms are included in training.
+This repository currently provides five core implementation files and a basic physics-based simulation script. The complete implementation and full simulation code will be released after the paper is accepted.
 
-## Repository structure
+## Files
 
-```text
-models/
-  full_model.py          Spatio-temporal dual-stream network
-  spatial_backbone.py    Dilated ResNet-18 spatial branch
-losses.py                Classification and auxiliary loss terms
-multimodal_data.py       Sequence–image data loading and group-based splitting
-train_dual_stream.py     Training, validation, and test entry point
-generate-data.py         Example physics-based simulation script
-```
+| File | Description |
+| --- | --- |
+| `temporal_transformer.py` | Multiscale temporal feature extraction and class-specific adaptive scale weighting. |
+| `dilated_resnet.py` | Spatial feature extraction using a dilated ResNet-18 backbone. |
+| `model.py` | Temporal-guided spatial enhancement, feature fusion, and three-class classification. |
+| `loss.py` | Temporal-variation and spectral-concentration constraints, together with scale-weight regularization. |
+| `train.py` | Training, validation, scale selection, and evaluation procedures. |
+| `simulate_data.py` | Basic example of physics-based radiative-sequence and infrared-image generation. |
 
 ## Requirements
 
-Python 3.10 is recommended. Install the required packages with:
+- Python 3.10 or later
+- PyTorch
+- NumPy
+- Pillow
+- scikit-learn
+
+## Basic simulation example
+
+Run the following command from this directory:
 
 ```bash
-pip install torch numpy pandas pillow openpyxl opencv-python scipy matplotlib
+python simulate_data.py --output example_data --samples-per-class 20 --seed 42
 ```
 
-## Generate example data
-
-Set `BASE_DIR` near the beginning of `generate-data.py` to the desired output directory, then run:
-
-```bash
-python generate-data.py
-```
-
-The script saves radiative-intensity data, infrared image sequences, visualizations, and image-quality measurements in separate `physics`, `images`, `visuals`, and `metrics` directories.
-
-## Prepare a training manifest
-
-Training uses a CSV manifest with one row for each candidate sequence. Each row pairs a radiative-intensity sequence with a corresponding candidate image (`frame_path`) or directory of candidate frames (`frames_dir`).
-
-The required columns are `sequence_id`, `label`, and `radiation_path`, together with either `frame_path` or `frames_dir`. The optional `radiation_column` field selects a column from a CSV or Excel radiation file. Labels can be written as `target`, `decoy`, and `debris`, or as `0`, `1`, and `2`.
-
-Samples derived from the same original sequence or trajectory should have the same `group_id`. The data loader keeps each group within a single training, validation, or test subset.
-
-An example manifest row is:
-
-```csv
-sequence_id,group_id,label,radiation_path,radiation_column,frame_path
-seq_0001_target,seq_0001,target,data/physics/0001.xlsx,Target_Radiation,data/candidates/seq_0001_target.jpg
-```
-
-Paths in the manifest may be absolute or relative to the manifest file.
-
-## Train and evaluate
-
-Run the following command from the repository root:
-
-```bash
-python train_dual_stream.py --manifest path/to/dataset_manifest.csv --epochs 50 --batch-size 16 --learning-rate 1e-4
-```
-
-The script divides complete sequence groups into training, validation, and test subsets. It selects the training checkpoint using validation weighted F1-score, evaluates temporal-scale configurations on the validation set, and tests both the full and selected deployment models.
-
-By default, outputs are saved in `runs/rp_stds_dtr/`:
+For each generated sample, the script saves a normalized radiative-intensity sequence in `radiation.npy` and its corresponding infrared frames in the `frames` directory:
 
 ```text
-best_model.pt
-deployment_model.pt
-history.json
-test_metrics.json
+example_data/
+├── target/
+│   └── sample_0000/
+│       ├── radiation.npy
+│       └── frames/
+│           ├── frame_00000.png
+│           └── ...
+├── decoy/
+└── debris/
 ```
+
+The example follows the physical modeling sequence of micromotion, projected-area variation, thermal evolution, radiative-intensity variation, and infrared image formation. It uses representative parameters to illustrate the generation procedure.
+
+## Model settings
+
+The temporal stream uses window sizes of `[2, 4, 6, 8, 10, 12, 20, 24, 30, 40]` and a 64-dimensional feature embedding. Its class-specific scale coefficients form a trainable matrix and are normalized by softmax across temporal scales.
+
+The spatial stream processes single-channel `256 × 256` images. Its fourth residual stage uses stride 1 and dilated convolutions to preserve spatial responses from dim targets. The network combines temporal and spatial features to produce classification scores for target, decoy, and debris.
+
+In the physics-guided loss, the reference parameters are fixed at `gamma = 0.15` and `delta = 0.45`; they are not updated during training.
+
+## Training and evaluation
+
+`train.py` presents the training and evaluation workflow, including sequence-level data partitioning, model optimization, validation-based scale selection, and metric calculation. The reported metrics include weighted F1-score, accuracy, precision, recall, false-alarm rate, specificity, and AUC.
+
+The training entry point uses project modules referenced by the `rp_stds_dtr` imports in the source files. The complete implementation and full simulation code will be added after the paper is accepted.
