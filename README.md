@@ -51,4 +51,7 @@ The example follows the modeling chain from class-dependent micromotion and proj
 
 `train.py` records the training settings and the evaluation definitions used in the study. It reports F1-score using fixed class-frequency weights pooled across the four groups, accuracy, and macro-averaged one-versus-rest precision, recall, specificity, false-alarm rate, and AUC. Provide the three pooled target, decoy, and debris counts through `--reference-class-counts`; the same counts are used for every group. Complete sequences are split before temporal windows are formed, so windows derived from one sequence remain in the same subset.
 
+The FLOPs and inference time reported in the manuscript refer to a single candidate inference under the experimental input configuration, not to processing the full dataset at once. The normalized confusion-matrix heat maps show, for each true class in Groups 2 and 3, how its predictions are distributed among target, decoy, and debris; the tables report aggregate metrics calculated over the evaluated candidate sequences after cross-frame trajectory association.
+
 The training entry point refers to project-specific dataset, attention, residual-block, pruning, configuration, and checkpoint modules through the `rp_stds_dtr` imports shown in the source files. Those integrations are required to run the full training workflow.
+
